@@ -1,0 +1,50 @@
+#include <iostream>
+using namespace std;
+
+const int SIZE = 5;
+int q[SIZE], front = -1, rear = -1;
+
+void enqueue(int x) {
+    if ((rear + 1) % SIZE == front) {
+        cout << "Queue Full\n";
+        return;
+    }
+    if (front == -1) front = 0;
+    rear = (rear + 1) % SIZE;
+    q[rear] = x;
+}
+
+void dequeue() {
+    if (front == -1) {
+        cout << "Queue Empty\n";
+        return;
+    }
+    cout << "Transmitted: " << q[front] << '\n';
+    if (front == rear) front = rear = -1;
+    else front = (front + 1) % SIZE;
+}
+
+void display() {
+    if (front == -1) {
+        cout << "No packets waiting\n";
+        return;
+    }
+    int i = front;
+    while (true) {
+        cout << q[i] << " ";
+        if (i == rear) break;
+        i = (i + 1) % SIZE;
+    }
+    cout << '\n';
+}
+
+int main() {
+    enqueue(201);
+    enqueue(202);
+    enqueue(203);
+    display();
+    dequeue();
+    enqueue(204);
+    display();
+    return 0;
+}
