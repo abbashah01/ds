@@ -1,0 +1,24 @@
+#include <iostream>
+#include <deque>
+using namespace std;
+
+int main() {
+    deque<int> dq;
+
+    dq.push_back(301);
+    dq.push_back(302);
+    dq.push_front(300);
+
+    cout << "Front -> ";
+    for (int id : dq) cout << id << " ";
+    cout << "<- Rear\n";
+
+    dq.pop_front();
+    dq.pop_back();
+
+    cout << "After removals: ";
+    for (int id : dq) cout << id << " ";
+    cout << '\n';
+
+    return 0;
+}
