@@ -1,0 +1,32 @@
+#include <iostream>
+#include <queue>
+#include <vector>
+using namespace std;
+
+struct Patient {
+    int id, priority;
+};
+
+struct Compare {
+    bool operator()(Patient a, Patient b) {
+        return a.priority == b.priority
+            ? a.id > b.id
+            : a.priority > b.priority;
+    }
+};
+
+int main() {
+    priority_queue<Patient, vector<Patient>, Compare> pq;
+
+    pq.push({101, 3});
+    pq.push({102, 1});
+    pq.push({103, 2});
+
+    while (!pq.empty()) {
+        Patient p = pq.top();
+        pq.pop();
+        cout << "Patient: " << p.id
+             << ", Priority: " << p.priority << '\n';
+    }
+    return 0;
+}
