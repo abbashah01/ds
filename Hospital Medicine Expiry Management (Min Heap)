@@ -1,0 +1,134 @@
+#include <iostream>
+#include <string>
+#include <queue>
+#include <algorithm>
+
+using namespace std;
+
+// 1. Medicine Node containing medicine name, medicine ID, expiry date, and left/right pointers
+struct MedicineNode {
+    string name;
+    int medicineID;
+    int expiryDate; // Stored in YYYYMMDD format (smaller integer = earlier expiry)
+    MedicineNode* left;
+    MedicineNode* right;
+    MedicineNode* parent;
+
+    MedicineNode(string n, int id, int expDate)
+        : name(n), medicineID(id), expiryDate(expDate),
+          left(nullptr), right(nullptr), parent(nullptr) {}
+};
+
+class MedicineMinHeap {
+private:
+    MedicineNode* root;
+
+    // Helper function to swap medicine details between two nodes
+    void swapData(MedicineNode* a, MedicineNode* b) {
+        swap(a->name, b->name);
+        swap(a->medicineID, b->medicineID);
+        swap(a->expiryDate, b->expiryDate);
+    }
+
+    // 3. Heapify Up: Bubbles a newly inserted earlier-expiring medicine toward the root
+    void heapifyUp(MedicineNode* node) {
+        while (node->parent != nullptr && node->expiryDate < node->parent->expiryDate) {
+            swapData(node, node->parent);
+            node = node->parent;
+        }
+    }
+
+    // 6. Heapify Down: Restores Min Heap property from top to bottom after deletion
+    void heapifyDown(MedicineNode* node) {
+        while (node != nullptr) {
+            MedicineNode* earliest = node;
+
+            if (node->left != nullptr && node->left->expiryDate < earliest->expiryDate) {
+                earliest = node->left;
+            }
+            if (node->right != nullptr && node->right->expiryDate < earliest->expiryDate) {
+                earliest = node->right;
+            }
+
+            if (earliest != node) {
+                swapData(node, earliest);
+                node = earliest;
+            } else {
+                break;
+            }
+        }
+    }
+
+    // Formats YYYYMMDD integer as YYYY-MM-DD for readable console output
+    string formatDate(int yyyymmdd) {
+        int year = yyyymmdd / 10000;
+        int month = (yyyymmdd / 100) % 100;
+        int day = yyyymmdd % 100;
+
+        return to_string(year) + "-"
+             + (month < 10 ? "0" : "") + to_string(month) + "-"
+             + (day < 10 ? "0" : "") + to_string(day);
+    }
+
+public:
+    MedicineMinHeap() : root(nullptr) {}
+
+    // 2. Insert medicine into the complete binary tree and 3. Apply Heapify Up
+    void insertMedicine(string name, int medicineID, int expiryDate) {
+        MedicineNode* newNode = new MedicineNode(name, medicineID, expiryDate);
+
+        if (root == nullptr) {
+            root = newNode;
+            return;
+        }
+
+        // Level-order traversal to find the first vacant child slot
+        queue<MedicineNode*> q;
+        q.push(root);
+
+        while (!q.empty()) {
+            MedicineNode* curr = q.front();
+            q.pop();
+
+            if (curr->left == nullptr) {
+                curr->left = newNode;
+                newNode->parent = curr;
+                break;
+            } else {
+                q.push(curr->left);
+            }
+
+            if (curr->right == nullptr) {
+                curr->right = newNode;
+                newNode->parent = curr;
+                break;
+            } else {
+                q.push(curr->right);
+            }
+        }
+
+        // Restore Min Heap order
+        heapifyUp(newNode);
+    }
+
+    // 4. Display the Heap using Level Order Traversal
+    void displayLevelOrder() {
+        if (root == nullptr) {
+            cout << "Medicine inventory heap is empty.\n";
+            return;
+        }
+
+        queue<MedicineNode*> q;
+        q.push(root);
+        int position = 1;
+
+        while (!q.empty()) {
+            MedicineNode* curr = q.front();
+            q.pop();
+
+            cout << "Node " << position++ << ": "
+                 << curr->name << " (ID: " << curr->medicineID
+                 << ", Expiry: " << curr->expiryDate
+                 << " [" << formatDate(curr->expiryDate) << "])\n";
+
+            if (curr->left != nullptr) q.push(curr->left);
