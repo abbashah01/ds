@@ -1,0 +1,218 @@
+#include <iostream>
+#include <string>
+#include <queue>
+#include <algorithm>
+
+using namespace std;
+
+// 1. Patient Node containing name, patient ID, priority level, and left/right pointers
+struct PatientNode {
+    string name;
+    int patientID;
+    int priorityLevel; // Higher number = higher urgency (e.g., 1 to 10)
+    PatientNode* left;
+    PatientNode* right;
+    PatientNode* parent;
+
+    PatientNode(string n, int id, int priority)
+        : name(n), patientID(id), priorityLevel(priority),
+          left(nullptr), right(nullptr), parent(nullptr) {}
+};
+
+class EmergencyMaxHeap {
+private:
+    PatientNode* root;
+
+    // Swap patient details between two nodes
+    void swapData(PatientNode* a, PatientNode* b) {
+        swap(a->name, b->name);
+        swap(a->patientID, b->patientID);
+        swap(a->priorityLevel, b->priorityLevel);
+    }
+
+    // Restore Max Heap order upward after insertion
+    void heapifyUp(PatientNode* node) {
+        while (node->parent != nullptr && node->priorityLevel > node->parent->priorityLevel) {
+            swapData(node, node->parent);
+            node = node->parent;
+        }
+    }
+
+    // 6. Restore Max Heap order downward after root deletion
+    void heapifyDown(PatientNode* node) {
+        while (node != nullptr) {
+            PatientNode* highest = node;
+
+            if (node->left != nullptr && node->left->priorityLevel > highest->priorityLevel) {
+                highest = node->left;
+            }
+            if (node->right != nullptr && node->right->priorityLevel > highest->priorityLevel) {
+                highest = node->right;
+            }
+
+            if (highest != node) {
+                swapData(node, highest);
+                node = highest;
+            } else {
+                break;
+            }
+        }
+    }
+
+public:
+    EmergencyMaxHeap() : root(nullptr) {}
+
+    // 2. Insert patient into the complete binary tree and apply Heapify Up
+    void admitPatient(string name, int patientID, int priorityLevel) {
+        PatientNode* newNode = new PatientNode(name, patientID, priorityLevel);
+
+        if (root == nullptr) {
+            root = newNode;
+            return;
+        }
+
+        // Level-order search for the first vacant child slot
+        queue<PatientNode*> q;
+        q.push(root);
+
+        while (!q.empty()) {
+            PatientNode* curr = q.front();
+            q.pop();
+
+            if (curr->left == nullptr) {
+                curr->left = newNode;
+                newNode->parent = curr;
+                break;
+            } else {
+                q.push(curr->left);
+            }
+
+            if (curr->right == nullptr) {
+                curr->right = newNode;
+                newNode->parent = curr;
+                break;
+            } else {
+                q.push(curr->right);
+            }
+        }
+
+        heapifyUp(newNode);
+    }
+
+    // 3. Display all patients using Level Order Traversal
+    void displayPatientsLevelOrder() {
+        if (root == nullptr) {
+            cout << "No patients currently in the emergency queue.\n";
+            return;
+        }
+
+        queue<PatientNode*> q;
+        q.push(root);
+        int position = 1;
+
+        while (!q.empty()) {
+            PatientNode* curr = q.front();
+            q.pop();
+
+            cout << "Position " << position++ << ": "
+                 << curr->name << " (ID: " << curr->patientID
+                 << ", Priority: " << curr->priorityLevel << ")\n";
+
+            if (curr->left != nullptr) q.push(curr->left);
+            if (curr->right != nullptr) q.push(curr->right);
+        }
+        cout << "--------------------------------------------------\n";
+    }
+
+    // 4. Identify and display the patient with the highest priority (root)
+    void displayHighestPriorityPatient() {
+        if (root == nullptr) {
+            cout << "Emergency queue is empty.\n";
+            return;
+        }
+
+        cout << "Highest Priority Patient: " << root->name
+             << " (ID: " << root->patientID
+             << ", Priority: " << root->priorityLevel << ")\n";
+    }
+
+    // 5. Delete the patient after treatment and 6. Apply Heapify Down
+    void treatTopPatient() {
+        if (root == nullptr) {
+            cout << "No patients to treat.\n";
+            return;
+        }
+
+        cout << "Treating & Discharging -> " << root->name
+             << " (ID: " << root->patientID
+             << ", Priority: " << root->priorityLevel << ")\n";
+
+        // If only the root node is in the heap
+        if (root->left == nullptr && root->right == nullptr) {
+            delete root;
+            root = nullptr;
+            cout << "All patients have been treated.\n";
+            return;
+        }
+
+        // Locate the last node in Level Order Traversal
+        queue<PatientNode*> q;
+        q.push(root);
+        PatientNode* lastNode = nullptr;
+
+        while (!q.empty()) {
+            lastNode = q.front();
+            q.pop();
+
+            if (lastNode->left != nullptr) q.push(lastNode->left);
+            if (lastNode->right != nullptr) q.push(lastNode->right);
+        }
+
+        // Copy last node's data to root and remove the last node
+        swapData(root, lastNode);
+
+        if (lastNode->parent->right == lastNode) {
+            lastNode->parent->right = nullptr;
+        } else {
+            lastNode->parent->left = nullptr;
+        }
+        delete lastNode;
+
+        // 6. Restore Max Heap property
+        heapifyDown(root);
+
+        // Display the next patient requiring treatment
+        cout << "Next Patient for Treatment -> " << root->name
+             << " (ID: " << root->patientID
+             << ", Priority: " << root->priorityLevel << ")\n";
+        cout << "--------------------------------------------------\n";
+    }
+};
+
+int main() {
+    EmergencyMaxHeap erQueue;
+
+    // 2. Insert 6 emergency patients
+    erQueue.admitPatient("Ali Khan",      201, 4); // Moderate fever
+    erQueue.admitPatient("Sara Ahmed",    202, 8); // Severe fracture
+    erQueue.admitPatient("Tariq Mahmood", 203, 3); // Minor sprain
+    erQueue.admitPatient("Nadia Bibi",    204, 10); // Cardiac arrest (Highest)
+    erQueue.admitPatient("Kamran Malik",  205, 6); // Deep laceration
+    erQueue.admitPatient("Hina Tariq",    206, 9); // Respiratory distress
+
+    // 3. Display all patients in Level Order
+    cout << "=== Current Emergency Queue (Level Order) ===\n";
+    erQueue.displayPatientsLevelOrder();
+
+    // 4. Identify and display the highest priority patient
+    erQueue.displayHighestPriorityPatient();
+    cout << "--------------------------------------------------\n";
+
+    // 5 & 6. Treat highest priority patient, apply Heapify Down, and show next patient
+    erQueue.treatTopPatient();
+
+    cout << "=== Updated Emergency Queue (Level Order) ===\n";
+    erQueue.displayPatientsLevelOrder();
+
+    return 0;
+}
