@@ -1,0 +1,195 @@
+#include <iostream>
+#include <string>
+#include <queue>
+#include <stack>
+#include <algorithm>
+
+using namespace std;
+
+// 1. Student Node containing name, roll number, marks, and left/right pointers
+struct StudentNode {
+    string name;
+    int rollNo;
+    int marks;
+    StudentNode* left;
+    StudentNode* right;
+    StudentNode* parent; // Helps efficiently traverse upward during Heapify Up
+
+    StudentNode(string n, int r, int m)
+        : name(n), rollNo(r), marks(m), left(nullptr), right(nullptr), parent(nullptr) {}
+};
+
+class MeritMaxHeap {
+private:
+    StudentNode* root;
+
+    // Helper function to swap student data between two nodes
+    void swapData(StudentNode* a, StudentNode* b) {
+        swap(a->name, b->name);
+        swap(a->rollNo, b->rollNo);
+        swap(a->marks, b->marks);
+    }
+
+    // 3. Heapify Up: Restores Max Heap property from bottom to top
+    void heapifyUp(StudentNode* node) {
+        while (node->parent != nullptr && node->marks > node->parent->marks) {
+            swapData(node, node->parent);
+            node = node->parent;
+        }
+    }
+
+    // 6. Heapify Down: Restores Max Heap property from top to bottom
+    void heapifyDown(StudentNode* node) {
+        while (node != nullptr) {
+            StudentNode* largest = node;
+
+            if (node->left != nullptr && node->left->marks > largest->marks) {
+                largest = node->left;
+            }
+            if (node->right != nullptr && node->right->marks > largest->marks) {
+                largest = node->right;
+            }
+
+            if (largest != node) {
+                swapData(node, largest);
+                node = largest;
+            } else {
+                break;
+            }
+        }
+    }
+
+public:
+    MeritMaxHeap() : root(nullptr) {}
+
+    // 2. Insert a student into the complete binary tree and apply Heapify Up
+    void insert(string name, int rollNo, int marks) {
+        StudentNode* newNode = new StudentNode(name, rollNo, marks);
+
+        if (root == nullptr) {
+            root = newNode;
+            return;
+        }
+
+        // Level-order traversal to find the first vacant spot
+        queue<StudentNode*> q;
+        q.push(root);
+
+        while (!q.empty()) {
+            StudentNode* curr = q.front();
+            q.pop();
+
+            if (curr->left == nullptr) {
+                curr->left = newNode;
+                newNode->parent = curr;
+                break;
+            } else {
+                q.push(curr->left);
+            }
+
+            if (curr->right == nullptr) {
+                curr->right = newNode;
+                newNode->parent = curr;
+                break;
+            } else {
+                q.push(curr->right);
+            }
+        }
+
+        // Restore Max Heap order
+        heapifyUp(newNode);
+    }
+
+    // 4. Display the Heap using Level Order Traversal
+    void displayLevelOrder() {
+        if (root == nullptr) {
+            cout << "Merit Heap is empty.\n";
+            return;
+        }
+
+        queue<StudentNode*> q;
+        q.push(root);
+        int rank = 1;
+
+        while (!q.empty()) {
+            StudentNode* curr = q.front();
+            q.pop();
+
+            cout << "Node " << rank++ << ": "
+                 << curr->name << " (Roll: " << curr->rollNo
+                 << ", Marks: " << curr->marks << ")\n";
+
+            if (curr->left != nullptr) q.push(curr->left);
+            if (curr->right != nullptr) q.push(curr->right);
+        }
+        cout << "----------------------------------------\n";
+    }
+
+    // 5. Delete the student with the highest marks (root)
+    void deleteMax() {
+        if (root == nullptr) {
+            cout << "Heap is empty. Nothing to delete.\n";
+            return;
+        }
+
+        cout << "Deleting Top Student -> " << root->name
+             << " (Roll: " << root->rollNo << ", Marks: " << root->marks << ")\n";
+
+        // If only one node exists
+        if (root->left == nullptr && root->right == nullptr) {
+            delete root;
+            root = nullptr;
+            return;
+        }
+
+        // Find the last node in Level Order Traversal
+        queue<StudentNode*> q;
+        q.push(root);
+        StudentNode* lastNode = nullptr;
+
+        while (!q.empty()) {
+            lastNode = q.front();
+            q.pop();
+
+            if (lastNode->left != nullptr) q.push(lastNode->left);
+            if (lastNode->right != nullptr) q.push(lastNode->right);
+        }
+
+        // Replace root's data with the last node's data
+        swapData(root, lastNode);
+
+        // Detach and delete the last node
+        if (lastNode->parent->right == lastNode) {
+            lastNode->parent->right = nullptr;
+        } else {
+            lastNode->parent->left = nullptr;
+        }
+        delete lastNode;
+
+        // 6. Apply Heapify Down from the root
+        heapifyDown(root);
+    }
+};
+
+int main() {
+    MeritMaxHeap meritList;
+
+    // Inserting 6 students
+    meritList.insert("Ayesha", 101, 82);
+    meritList.insert("Bilal",  102, 91);
+    meritList.insert("Zainab", 103, 76);
+    meritList.insert("Hamza",  104, 95);
+    meritList.insert("Usman",  105, 88);
+    meritList.insert("Fatima", 106, 98);
+
+    cout << "=== Initial Merit List (Level Order) ===\n";
+    meritList.displayLevelOrder();
+
+    // Deleting the student with the highest marks (Fatima - 98)
+    meritList.deleteMax();
+
+    cout << "\n=== Updated Merit List After Deletion ===\n";
+    meritList.displayLevelOrder();
+
+    return 0;
+}
