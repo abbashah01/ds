@@ -1,0 +1,217 @@
+#include <iostream>
+#include <string>
+#include <queue>
+#include <vector>
+#include <algorithm>
+
+using namespace std;
+
+// 1. Order Node containing order ID, customer name, order amount, and left/right pointers
+struct OrderNode {
+    int orderID;
+    string customerName;
+    double orderAmount;
+    OrderNode* left;
+    OrderNode* right;
+    OrderNode* parent;
+
+    OrderNode(int id, string name, double amount)
+        : orderID(id), customerName(name), orderAmount(amount),
+          left(nullptr), right(nullptr), parent(nullptr) {}
+};
+
+// Lightweight struct to store deleted order details for the sorted report
+struct OrderRecord {
+    int orderID;
+    string customerName;
+    double orderAmount;
+};
+
+class OrderMaxHeap {
+private:
+    OrderNode* root;
+    int nodeCount;
+
+    // Swap order details between two nodes
+    void swapData(OrderNode* a, OrderNode* b) {
+        swap(a->orderID, b->orderID);
+        swap(a->customerName, b->customerName);
+        swap(a->orderAmount, b->orderAmount);
+    }
+
+    // 3. Heapify Up: Restores Max Heap property after insertion
+    void heapifyUp(OrderNode* node) {
+        while (node->parent != nullptr && node->orderAmount > node->parent->orderAmount) {
+            swapData(node, node->parent);
+            node = node->parent;
+        }
+    }
+
+    // Heapify Down: Restores Max Heap property after root deletion
+    void heapifyDown(OrderNode* node) {
+        while (node != nullptr) {
+            OrderNode* largest = node;
+
+            if (node->left != nullptr && node->left->orderAmount > largest->orderAmount) {
+                largest = node->left;
+            }
+            if (node->right != nullptr && node->right->orderAmount > largest->orderAmount) {
+                largest = node->right;
+            }
+
+            if (largest != node) {
+                swapData(node, largest);
+                node = largest;
+            } else {
+                break;
+            }
+        }
+    }
+
+    // Deletes and returns the current root (maximum order)
+    OrderRecord deleteMax() {
+        OrderRecord maxOrder = { root->orderID, root->customerName, root->orderAmount };
+
+        if (root->left == nullptr && root->right == nullptr) {
+            delete root;
+            root = nullptr;
+            nodeCount--;
+            return maxOrder;
+        }
+
+        // Locate the last node in Level Order Traversal
+        queue<OrderNode*> q;
+        q.push(root);
+        OrderNode* lastNode = nullptr;
+
+        while (!q.empty()) {
+            lastNode = q.front();
+            q.pop();
+
+            if (lastNode->left != nullptr) q.push(lastNode->left);
+            if (lastNode->right != nullptr) q.push(lastNode->right);
+        }
+
+        // Replace root data with last node data and delete last node
+        swapData(root, lastNode);
+
+        if (lastNode->parent->right == lastNode) {
+            lastNode->parent->right = nullptr;
+        } else {
+            lastNode->parent->left = nullptr;
+        }
+        delete lastNode;
+        nodeCount--;
+
+        // Restore Max Heap order
+        heapifyDown(root);
+
+        return maxOrder;
+    }
+
+public:
+    OrderMaxHeap() : root(nullptr), nodeCount(0) {}
+
+    // 2. Insert an order into the Max Heap and 3. Apply Heapify Up
+    void insertOrder(int orderID, string customerName, double orderAmount) {
+        OrderNode* newNode = new OrderNode(orderID, customerName, orderAmount);
+        nodeCount++;
+
+        if (root == nullptr) {
+            root = newNode;
+            return;
+        }
+
+        // Level-order traversal to insert at the next available position
+        queue<OrderNode*> q;
+        q.push(root);
+
+        while (!q.empty()) {
+            OrderNode* curr = q.front();
+            q.pop();
+
+            if (curr->left == nullptr) {
+                curr->left = newNode;
+                newNode->parent = curr;
+                break;
+            } else {
+                q.push(curr->left);
+            }
+
+            if (curr->right == nullptr) {
+                curr->right = newNode;
+                newNode->parent = curr;
+                break;
+            } else {
+                q.push(curr->right);
+            }
+        }
+
+        heapifyUp(newNode);
+    }
+
+    // Display current heap in Level Order
+    void displayHeapLevelOrder() {
+        if (root == nullptr) {
+            cout << "Heap is empty.\n";
+            return;
+        }
+
+        queue<OrderNode*> q;
+        q.push(root);
+
+        while (!q.empty()) {
+            OrderNode* curr = q.front();
+            q.pop();
+
+            cout << "Order #" << curr->orderID << " | " << curr->customerName
+                 << " | $" << curr->orderAmount << "\n";
+
+            if (curr->left != nullptr) q.push(curr->left);
+            if (curr->right != nullptr) q.push(curr->right);
+        }
+        cout << "--------------------------------------------------\n";
+    }
+
+    // 4. Implement Heap Sort using repeated root deletion & 5. Store deleted amounts
+    vector<OrderRecord> heapSortAscending() {
+        int total = nodeCount;
+        vector<OrderRecord> sortedOrders(total);
+
+        // Repeatedly delete the max root and place it from the end to the start
+        for (int i = total - 1; i >= 0; i--) {
+            sortedOrders[i] = deleteMax();
+        }
+
+        return sortedOrders;
+    }
+};
+
+int main() {
+    OrderMaxHeap orderHeap;
+
+    // 2. Insert 6 customer orders into the Max Heap
+    orderHeap.insertOrder(501, "Zeeshan", 4500.00);
+    orderHeap.insertOrder(502, "Mahnoor", 1250.50);
+    orderHeap.insertOrder(503, "Omer",    8900.00);
+    orderHeap.insertOrder(504, "Sana",    3200.75);
+    orderHeap.insertOrder(505, "Hassan",  6100.00);
+    orderHeap.insertOrder(506, "Amina",   1950.25);
+
+    cout << "=== Max Heap Before Sorting (Level Order) ===\n";
+    orderHeap.displayHeapLevelOrder();
+
+    // 4 & 5. Perform Heap Sort via repeated root deletion and store results
+    vector<OrderRecord> salesReport = orderHeap.heapSortAscending();
+
+    // 6. Display the order amounts in ascending order (smallest to largest)
+    cout << "=== Sales Report: Orders Sorted (Lowest to Highest) ===\n";
+    for (size_t i = 0; i < salesReport.size(); i++) {
+        cout << i + 1 << ". Order #" << salesReport[i].orderID
+             << " | Customer: " << salesReport[i].customerName
+             << " | Amount: $" << salesReport[i].orderAmount << "\n";
+    }
+    cout << "--------------------------------------------------\n";
+
+    return 0;
+}
